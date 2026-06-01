@@ -361,4 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/web/App_dbs/morsopskrifter.db
+/web/App_dbs/**
+/web/App_files/**
