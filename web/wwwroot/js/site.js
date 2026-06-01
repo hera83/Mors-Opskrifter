@@ -165,14 +165,9 @@
         // Kategori
         const catVal  = modal.querySelector('.js-cr-cat-value');
         const catIcon = modal.querySelector('.js-cr-caticon-value');
-        const catLbl  = modal.querySelector('.js-cr-cat-label');
-        const catImg  = modal.querySelector('.js-cr-cat-icon-img');
         if (data.category) {
             catVal.value  = data.category;
             catIcon.value = data.categoryIcon || 'cookie';
-            catLbl.textContent = data.category;
-            catLbl.classList.add('selected');
-            catImg.src = `/icons/${data.categoryIcon || 'cookie'}.svg`;
         }
 
         // Sværhedsgrad
@@ -437,68 +432,30 @@
         if (!initialText) row.querySelector('textarea').focus();
     }
 
-    // ── Kategori dropdown ────────────────────────────────────────────
+    // ── Kategori input med datalist ──────────────────────────────────
     function initCatDropdown(modal) {
-        const chosen    = modal.querySelector('.js-cr-cat-chosen');
-        const dropdown  = modal.querySelector('.js-cr-cat-dropdown');
-        const listEl    = modal.querySelector('.js-cr-cat-list');
-        const searchEl  = modal.querySelector('.js-cr-cat-search');
-        const valInput  = modal.querySelector('.js-cr-cat-value');
+        const catInput  = modal.querySelector('.js-cr-cat-value');
+        const datalist  = modal.querySelector('.js-cr-cat-datalist');
         const iconInput = modal.querySelector('.js-cr-caticon-value');
-        const labelEl   = modal.querySelector('.js-cr-cat-label');
-        const iconImg   = modal.querySelector('.js-cr-cat-icon-img');
 
         let cats = [];
-        let loaded = false;
 
         async function loadCats() {
-            if (loaded) return;
-            loaded = true;
+            if (cats.length > 0) return;
             try {
-                const res  = await fetch('/Recipes/GetCategories');
+                const res = await fetch('/Recipes/GetCategories');
                 cats = await res.json();
-                renderCats(cats);
-            } catch {
-                listEl.innerHTML = '<div class="cr-cat-loading">Kunne ikke hente kategorier</div>';
-            }
-        }
-
-        function renderCats(list) {
-            listEl.innerHTML = list.length === 0
-                ? '<div class="cr-cat-loading">Ingen kategorier</div>'
-                : list.map(c =>
-                    `<div class="cr-cat-option" data-name="${c.name}" data-icon="${c.icon}">
-                        <img src="/icons/${c.icon}.svg" alt="" />
-                        <span>${c.name}</span>
-                    </div>`
+                datalist.innerHTML = cats.map(c =>
+                    `<option value="${c.name}" data-icon="${c.icon}"></option>`
                 ).join('');
-            listEl.querySelectorAll('.cr-cat-option').forEach(opt => {
-                opt.addEventListener('click', () => {
-                    valInput.value   = opt.dataset.name;
-                    iconInput.value  = opt.dataset.icon;
-                    labelEl.textContent = opt.dataset.name;
-                    labelEl.classList.add('selected');
-                    iconImg.src = `/icons/${opt.dataset.icon}.svg`;
-                    dropdown.style.display = 'none';
-                });
-            });
+            } catch { /* stil ok – brugeren kan skrive frit */ }
         }
 
-        chosen.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const open = dropdown.style.display !== 'none';
-            dropdown.style.display = open ? 'none' : 'flex';
-            if (!open) { await loadCats(); searchEl.focus(); }
-        });
+        catInput.addEventListener('focus', loadCats);
 
-        searchEl.addEventListener('input', () => {
-            const q = searchEl.value.toLowerCase();
-            renderCats(cats.filter(c => c.name.toLowerCase().includes(q)));
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!modal.querySelector('.cr-cat-select').contains(e.target))
-                dropdown.style.display = 'none';
+        catInput.addEventListener('input', () => {
+            const match = cats.find(c => c.name.toLowerCase() === catInput.value.toLowerCase());
+            iconInput.value = match ? match.icon : 'cookie';
         });
     }
 
@@ -598,12 +555,8 @@
         modal.querySelector('.js-cr-notes').value     = '';
 
         // Category
-        modal.querySelector('.js-cr-cat-value').value    = '';
+        modal.querySelector('.js-cr-cat-value').value     = '';
         modal.querySelector('.js-cr-caticon-value').value = 'cookie';
-        modal.querySelector('.js-cr-cat-label').textContent = 'Vælg kategori';
-        modal.querySelector('.js-cr-cat-label').classList.remove('selected');
-        modal.querySelector('.js-cr-cat-icon-img').src = '/icons/cookie.svg';
-        modal.querySelector('.js-cr-cat-dropdown').style.display = 'none';
 
         // Difficulty
         modal.querySelectorAll('.cr-diff-chip').forEach(c => {
@@ -696,6 +649,220 @@
     document.addEventListener('click', e => {
         if (e.target.closest('.js-cr-open')) openModal();
     });
+})();
+
+/* ── AI Scan opskrift fra URL ────────────────────────────────────────────── */
+(function () {
+    const overlay     = document.querySelector('.js-ai-scan-overlay');
+    const closeBtn    = document.querySelector('.js-ai-scan-close');
+    const urlInput    = document.querySelector('.js-ai-scan-url');
+    const submitBtn   = document.querySelector('.js-ai-scan-submit');
+    const statusEl    = document.querySelector('.js-ai-scan-status');
+    const statusText  = document.querySelector('.js-ai-scan-status-text');
+    const resultEl    = document.querySelector('.js-ai-scan-result');
+    const footerEl    = document.querySelector('.js-ai-scan-footer');
+    const transferBtn = document.querySelector('.js-ai-scan-transfer');
+    const inputRow    = document.querySelector('.js-ai-scan-input-row');
+
+    if (!overlay) return;
+
+    let scannedData   = null;
+    let statusTimer   = null;
+
+    // Rotér statustekster for at vise aktivitet mens Ollama starter/tænker
+    const STATUS_PHASES = [
+        { text: 'Starter model…',      ms: 3000 },
+        { text: 'Analyserer side…',    ms: 8000 },
+        { text: 'Læser ingredienser…', ms: 8000 },
+        { text: 'Behandler opskrift…', ms: 0 /* løber til svar */ },
+    ];
+
+    function startStatusRotation() {
+        let idx = 0;
+        statusText.textContent = STATUS_PHASES[0].text;
+        statusEl.style.display = 'flex';
+
+        function tick() {
+            if (idx >= STATUS_PHASES.length - 1) return; // Hold på sidste fase
+            const delay = STATUS_PHASES[idx].ms;
+            statusTimer = setTimeout(() => {
+                idx++;
+                statusText.textContent = STATUS_PHASES[idx].text;
+                tick();
+            }, delay);
+        }
+        tick();
+    }
+
+    function stopStatusRotation() {
+        if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    }
+
+    function openScan() {
+        scannedData = null;
+        urlInput.value = '';
+        statusEl.style.display  = 'none';
+        resultEl.style.display  = 'none';
+        footerEl.style.display  = 'none';
+        inputRow.style.display  = '';
+        submitBtn.disabled      = false;
+        resultEl.className      = 'ai-scan-result js-ai-scan-result';
+        overlay.style.display   = 'flex';
+        setTimeout(() => urlInput.focus(), 60);
+    }
+
+    function closeScan() {
+        stopStatusRotation();
+        overlay.style.display = 'none';
+    }
+
+    function showResult(message, isError) {
+        stopStatusRotation();
+        statusEl.style.display = 'none';
+        resultEl.className     = 'ai-scan-result js-ai-scan-result' + (isError ? ' ai-result-error' : ' ai-result-success');
+        resultEl.textContent   = message;
+        resultEl.style.display = '';
+        submitBtn.disabled     = false;
+    }
+
+    async function runScan() {
+        const url = urlInput.value.trim();
+        if (!url) { urlInput.focus(); return; }
+
+        scannedData            = null;
+        submitBtn.disabled     = true;
+        resultEl.style.display = 'none';
+        footerEl.style.display = 'none';
+        resultEl.className     = 'ai-scan-result js-ai-scan-result';
+
+        startStatusRotation();
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+        let res, data;
+        try {
+            res = await fetch('/Recipes/AiScanUrl', {
+                method:  'POST',
+                headers: {
+                    'Content-Type':              'application/json',
+                    'RequestVerificationToken':  csrfToken
+                },
+                body: JSON.stringify({ url })
+            });
+        } catch (err) {
+            showResult('Netværksfejl: ' + err.message, true);
+            return;
+        }
+
+        if (!res.ok) {
+            showResult(`Serverfejl (HTTP ${res.status}) – prøv igen.`, true);
+            return;
+        }
+
+        try {
+            data = await res.json();
+        } catch {
+            showResult('Uventet svar fra serveren – prøv igen.', true);
+            return;
+        }
+
+        if (!data.ok) {
+            showResult(data.error || 'Ukendt fejl – prøv igen.', true);
+            return;
+        }
+
+        if (!data.found) {
+            showResult('Opskrift ikke fundet på siden. Prøv en anden URL eller scan igen.', true);
+            return;
+        }
+
+        // Succes
+        scannedData = data;
+        const ingCount  = (data.ingredients || []).length;
+        const stepCount = (data.steps || []).length;
+        const src       = data.source === 'structured' ? ' via struktureret data' : ' via AI';
+        const extras    = [
+            data.title      && 'titel',
+            data.category   && 'kategori',
+            data.prepTime   && 'forb. tid',
+            data.cookTime   && 'tilb. tid',
+            data.servings   && 'portioner',
+            data.difficulty && 'sværhedsgrad',
+        ].filter(Boolean);
+        const extrasStr = extras.length ? ` + ${extras.join(', ')}` : '';
+        showResult(
+            `Opskrift fundet (${src})! ${ingCount} ingrediens${ingCount !== 1 ? 'er' : ''}, ${stepCount} trin${extrasStr} klar til overførsel.`,
+            false
+        );
+        footerEl.style.display = '';
+    }
+
+    function transferToForm() {
+        if (!scannedData) return;
+        const modal = document.querySelector('.cr-modal');
+        if (!modal) return;
+
+        const ingList  = modal.querySelector('.js-cr-ing-list');
+        const stepList = modal.querySelector('.js-cr-step-list');
+        if (!ingList || !stepList) return;
+
+        // ── Metadata ─────────────────────────────────────────────────────
+        if (scannedData.title) {
+            const titleInput = modal.querySelector('.js-cr-title');
+            if (titleInput && !titleInput.value.trim()) titleInput.value = scannedData.title;
+        }
+        if (scannedData.category) {
+            const catInput = modal.querySelector('.js-cr-cat-value');
+            if (catInput && !catInput.value.trim()) catInput.value = scannedData.category;
+        }
+        if (scannedData.prepTime != null) {
+            const prepInput = modal.querySelector('.js-cr-prep');
+            if (prepInput && (prepInput.value === '0' || prepInput.value === '')) prepInput.value = scannedData.prepTime;
+        }
+        if (scannedData.cookTime != null) {
+            const cookInput = modal.querySelector('.js-cr-cook');
+            if (cookInput && (cookInput.value === '0' || cookInput.value === '')) cookInput.value = scannedData.cookTime;
+        }
+        if (scannedData.servings != null) {
+            const servInput = modal.querySelector('.js-cr-servings');
+            if (servInput) servInput.value = scannedData.servings;
+        }
+        if (scannedData.difficulty) {
+            modal.querySelectorAll('.cr-diff-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.value === scannedData.difficulty);
+            });
+        }
+
+        // ── Ingredienser + trin ────────────────────────────────────────────
+        ingList.innerHTML  = '';
+        stepList.innerHTML = '';
+
+        const { addIngRow, addStepRow } = window._crHelpers || {};
+
+        (scannedData.ingredients || []).forEach(ing => {
+            if (addIngRow) addIngRow(ingList, ing.amount || '', ing.unit || '', ing.name || '');
+        });
+
+        (scannedData.steps || []).forEach(step => {
+            if (addStepRow) addStepRow(stepList, step || '');
+        });
+
+        if (!ingList.children.length  && addIngRow)  addIngRow(ingList);
+        if (!stepList.children.length && addStepRow) addStepRow(stepList);
+
+        closeScan();
+        showToast('Opskrift overført til formularen!', 'success');
+    }
+
+    // Bind events
+    document.addEventListener('click', e => {
+        if (e.target.closest('.js-cr-ai-scan')) openScan();
+    });
+    closeBtn.addEventListener('click', closeScan);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeScan(); });
+    submitBtn.addEventListener('click', runScan);
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') runScan(); });
+    transferBtn.addEventListener('click', transferToForm);
 })();
 
 (function () {

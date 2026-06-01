@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 using web.Data;
 using web.Models;
+using web.Services.Ollama;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
@@ -41,6 +42,12 @@ builder.Services.ConfigureApplicationCookie(opt =>
 
 // ── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
+
+// ── Ollama ───────────────────────────────────────────────────────────────────
+builder.Services.AddHttpClient("Ollama");
+builder.Services.AddScoped<OllamaHttpClientFactory>();
+builder.Services.AddScoped<IOllamaConfigurationProvider, OllamaConfigurationProvider>();
+builder.Services.AddScoped<IOllamaService, OllamaService>();
 
 var app = builder.Build();
 
