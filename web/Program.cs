@@ -49,7 +49,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
-    await DbSeeder.SeedRecipesAsync(db);
+
+    if (app.Environment.IsDevelopment())
+        await DbSeeder.SeedRecipesAsync(db);
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     foreach (var role in new[] { "Administrator", "User" })
