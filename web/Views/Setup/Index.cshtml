@@ -1,0 +1,50 @@
+@model web.Controllers.SetupViewModel
+@{
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<h1 class="auth-title">Opret administrator</h1>
+<p class="auth-sub">Ingen brugere fundet — opret den første administrator for at komme i gang</p>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="auth-error">
+        @Html.ValidationSummary(false, "", new { @class = "auth-validation" })
+    </div>
+}
+
+<form method="post" asp-action="Index" asp-controller="Setup">
+    @Html.AntiForgeryToken()
+
+    <div class="auth-field">
+        <label asp-for="DisplayName">Navn (vises i appen)</label>
+        <input asp-for="DisplayName" type="text" autocomplete="name" autofocus placeholder="f.eks. Mor" />
+        <span asp-validation-for="DisplayName" class="auth-field-error"></span>
+    </div>
+
+    <div class="auth-field">
+        <label asp-for="Username">Brugernavn</label>
+        <input asp-for="Username" type="text" autocomplete="username" placeholder="Vælg et brugernavn" />
+        <span asp-validation-for="Username" class="auth-field-error"></span>
+    </div>
+
+    <div class="auth-field">
+        <label asp-for="Email">E-mail <span class="auth-optional">(valgfri)</span></label>
+        <input asp-for="Email" type="email" autocomplete="email" placeholder="din@email.dk" />
+        <span asp-validation-for="Email" class="auth-field-error"></span>
+    </div>
+
+    <div class="auth-field">
+        <label asp-for="Password">Adgangskode</label>
+        <input asp-for="Password" type="password" autocomplete="new-password" placeholder="Mindst 6 tegn" />
+        <span asp-validation-for="Password" class="auth-field-error"></span>
+    </div>
+
+    <div class="auth-field">
+        <label asp-for="ConfirmPassword">Gentag adgangskode</label>
+        <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" placeholder="Gentag adgangskoden" />
+        <span asp-validation-for="ConfirmPassword" class="auth-field-error"></span>
+    </div>
+
+    <button type="submit" class="auth-btn">Opret og log ind</button>
+</form>

@@ -1,0 +1,628 @@
+@using web.Models
+@model List<Category>
+
+<div class="detail-panel">
+    <div class="settings-content">
+        <h1>Indstillinger</h1>
+
+        <div class="settings-columns">
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <div class="settings-section-title">Kategorier</div>
+                    <button class="icon-btn icon-btn-add js-add-cat" title="Tilføj kategori">
+                        <img src="~/icons/plus.svg" alt="Tilføj" />
+                    </button>
+                </div>
+                <div class="cat-list">
+                    @foreach (var cat in Model)
+                    {
+                        <div class="cat-row" data-cat-id="@cat.Id">
+                            <div class="cat-icon-wrap">
+                                <img src="~/icons/@(cat.Icon).svg" alt="@cat.Name" />
+                            </div>
+                            <span class="cat-name">@cat.Name</span>
+                            <span class="cat-count">@cat.RecipeCount opskrift@(cat.RecipeCount == 1 ? "" : "er")</span>
+                            <div class="cat-actions">
+                                <button class="icon-btn js-edit-cat"
+                                        title="Rediger"
+                                        data-id="@cat.Id"
+                                        data-name="@cat.Name"
+                                        data-icon="@cat.Icon">
+                                    <img src="~/icons/edit.svg" alt="Rediger" />
+                                </button>
+                                <button class="icon-btn js-delete-cat"
+                                        title="Slet"
+                                        data-id="@cat.Id"
+                                        data-name="@cat.Name"
+                                        data-count="@cat.RecipeCount">
+                                    <img src="~/icons/trash.svg" alt="Slet" />
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="settings-column-right">
+                <div class="settings-section">
+                    <div class="settings-section-header">
+                        <div class="settings-section-title">Brugere</div>
+                        <button class="icon-btn icon-btn-add js-add-user" title="Tilføj bruger">
+                            <img src="~/icons/plus.svg" alt="Tilføj" />
+                        </button>
+                    </div>
+                    <div class="cat-list" id="userList">
+                    </div>
+                </div>
+
+                <div class="settings-section settings-section--about">
+                    <div class="settings-section-title">Om appen</div>
+                    <div class="about-card">
+                        <div class="about-card-logo">
+                            <img src="~/icons/cookie.svg" alt="Mors Opskrifter" />
+                        </div>
+                        <div class="about-card-body">
+                            <div class="about-card-name">Mors Opskrifter</div>
+                            <div class="about-card-desc">Din personlige digitale opskriftsbog – bevar familiens opskrifter for eftertiden, organiser i kategorier og find altid den rigtige opskrift.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="settings-logout-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="modal-btn modal-btn-secondary">
+                        <img src="~/icons/close.svg" alt="" />
+                        Log ud
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Rediger Kategori Modal
+<div class="app-modal-backdrop" id="editCatModal" role="dialog" aria-modal="true" aria-labelledby="editCatModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="editCatModalTitle">Rediger kategori</span>
+            <button class="app-modal-close js-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <div class="app-modal-field">
+                <label for="editCatName">Navn</label>
+                <input type="text" id="editCatName" placeholder="Kategorinavn..." />
+            </div>
+            <div class="app-modal-field">
+                <label>Ikon</label>
+                <div class="icon-picker" id="editCatIconPicker">
+                    @foreach (var icon in new[] { "bread","cake","camera","cookie","croissant","dessert","folder","scale","star" })
+                    {
+                        <button type="button" class="icon-picker-item" data-icon="@icon" title="@icon">
+                            <img src="~/icons/@(icon).svg" alt="@icon" />
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" />
+                Luk
+            </button>
+            <button class="modal-btn modal-btn-primary" id="editCatSave" type="button">
+                <img src="~/icons/save.svg" alt="" />
+                Gem
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Opret Kategori Modal ────────────────────────── *@
+<div class="app-modal-backdrop" id="addCatModal" role="dialog" aria-modal="true" aria-labelledby="addCatModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="addCatModalTitle">Ny kategori</span>
+            <button class="app-modal-close js-add-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <div class="app-modal-field">
+                <label for="addCatName">Navn</label>
+                <input type="text" id="addCatName" placeholder="Kategorinavn..." />
+            </div>
+            <div class="app-modal-field">
+                <label>Ikon</label>
+                <div class="icon-picker" id="addCatIconPicker">
+                    @foreach (var icon in new[] { "bread","cake","camera","cookie","croissant","dessert","folder","scale","star" })
+                    {
+                        <button type="button" class="icon-picker-item" data-icon="@icon" title="@icon">
+                            <img src="~/icons/@(icon).svg" alt="@icon" />
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-add-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" />
+                Luk
+            </button>
+            <button class="modal-btn modal-btn-primary" id="addCatSave" type="button">
+                <img src="~/icons/save.svg" alt="" />
+                Opret
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Slet Kategori Modal ──────────────────────────── *@
+<div class="app-modal-backdrop" id="deleteCatModal" role="dialog" aria-modal="true" aria-labelledby="deleteCatModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="deleteCatModalTitle">Slet kategori</span>
+            <button class="app-modal-close js-delete-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <p class="modal-confirm-text">
+                Er du sikker på, at du vil slette kategorien <strong id="deleteCatNameLabel"></strong>?
+            </p>
+            <div id="deleteCatWarning" class="modal-warning-box" style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span id="deleteCatWarningText"></span>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-delete-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" />
+                Luk
+            </button>
+            <button class="modal-btn modal-btn-danger" id="deleteCatConfirm" type="button">
+                <img src="~/icons/trash.svg" alt="" />
+                Slet
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Opret Bruger Modal ────────────────────────── *@
+<div class="app-modal-backdrop" id="addUserModal" role="dialog" aria-modal="true" aria-labelledby="addUserModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="addUserModalTitle">Ny bruger</span>
+            <button class="app-modal-close js-add-user-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <div class="app-modal-field">
+                <label for="addUserUsername">Brugernavn</label>
+                <input type="text" id="addUserUsername" placeholder="Brugernavn..." autocomplete="off" />
+            </div>
+            <div class="app-modal-field">
+                <label for="addUserDisplayName">Visningsnavn</label>
+                <input type="text" id="addUserDisplayName" placeholder="Visningsnavn..." autocomplete="off" />
+            </div>
+            <div class="app-modal-field">
+                <label for="addUserPassword">Adgangskode</label>
+                <input type="password" id="addUserPassword" placeholder="Min. 6 tegn..." autocomplete="new-password" />
+            </div>
+            <div class="app-modal-field">
+                <label for="addUserRole">Rolle</label>
+                <select id="addUserRole">
+                    <option value="User">Bruger</option>
+                    <option value="Administrator">Administrator</option>
+                </select>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-add-user-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" /> Luk
+            </button>
+            <button class="modal-btn modal-btn-primary" id="addUserSave" type="button">
+                <img src="~/icons/save.svg" alt="" /> Opret
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Rediger Bruger Modal ────────────────────────── *@
+<div class="app-modal-backdrop" id="editUserModal" role="dialog" aria-modal="true" aria-labelledby="editUserModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="editUserModalTitle">Rediger bruger</span>
+            <button class="app-modal-close js-edit-user-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <input type="hidden" id="editUserId" />
+            <div class="app-modal-field">
+                <label for="editUserDisplayName">Visningsnavn</label>
+                <input type="text" id="editUserDisplayName" placeholder="Visningsnavn..." />
+            </div>
+            <div class="app-modal-field">
+                <label for="editUserPassword">Ny adgangskode <small>(lad stå tom for at beholde)</small></label>
+                <input type="password" id="editUserPassword" placeholder="Ny adgangskode..." autocomplete="new-password" />
+            </div>
+            <div class="app-modal-field">
+                <label for="editUserRole">Rolle</label>
+                <select id="editUserRole">
+                    <option value="User">Bruger</option>
+                    <option value="Administrator">Administrator</option>
+                </select>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-edit-user-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" /> Luk
+            </button>
+            <button class="modal-btn modal-btn-primary" id="editUserSave" type="button">
+                <img src="~/icons/save.svg" alt="" /> Gem
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Slet Bruger Modal ────────────────────────── *@
+<div class="app-modal-backdrop" id="deleteUserModal" role="dialog" aria-modal="true" aria-labelledby="deleteUserModalTitle">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title" id="deleteUserModalTitle">Slet bruger</span>
+            <button class="app-modal-close js-delete-user-modal-close" title="Luk">&#x2715;</button>
+        </div>
+        <div class="app-modal-body">
+            <input type="hidden" id="deleteUserId" />
+            <p class="modal-confirm-text">Er du sikker på, at du vil slette brugeren <strong id="deleteUserNameLabel"></strong>?</p>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn modal-btn-secondary js-delete-user-modal-close" type="button">
+                <img src="~/icons/close.svg" alt="" /> Luk
+            </button>
+            <button class="modal-btn modal-btn-danger" id="deleteUserConfirm" type="button">
+                <img src="~/icons/trash.svg" alt="" /> Slet
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const catList = document.querySelector('.cat-list');
+
+    // ── Fælles hjælpefunktioner til ikon-vælger ──────────
+    function setSelectedIcon(picker, icon) {
+        picker.querySelectorAll('.icon-picker-item').forEach(item => {
+            item.classList.toggle('selected', item.dataset.icon === icon);
+        });
+    }
+    function getSelectedIcon(picker) {
+        return picker.querySelector('.icon-picker-item.selected')?.dataset.icon ?? 'cookie';
+    }
+
+    // Bind ikon-vælgere i alle modals ved load
+    document.querySelectorAll('.icon-picker').forEach(picker => {
+        picker.querySelectorAll('.icon-picker-item').forEach(item => {
+            item.addEventListener('click', () => setSelectedIcon(picker, item.dataset.icon));
+        });
+    });
+
+    // ── Generisk modal åbn/luk ────────────────────────────
+    function openModal(modal, focusEl) {
+        modal.classList.add('is-open');
+        focusEl?.focus();
+    }
+    function closeModal(modal) {
+        modal.classList.remove('is-open');
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape')
+            document.querySelectorAll('.app-modal-backdrop.is-open')
+                    .forEach(m => closeModal(m));
+    });
+    document.querySelectorAll('.app-modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(backdrop); });
+    });
+    document.querySelectorAll('.js-modal-close, .js-add-modal-close, .js-delete-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.closest('.app-modal-backdrop')));
+    });
+
+    // ── Rediger kategori ──────────────────────────────────
+    const editModal   = document.getElementById('editCatModal');
+    const editNameInp = document.getElementById('editCatName');
+    const editPicker  = document.getElementById('editCatIconPicker');
+    const editSaveBtn = document.getElementById('editCatSave');
+    let editId = null;
+
+    // Event delegation – virker også for dynamisk tilføjede rækker
+    catList.addEventListener('click', e => {
+        const btn = e.target.closest('.js-edit-cat');
+        if (!btn) return;
+        editId = btn.dataset.id;
+        editNameInp.value = btn.dataset.name;
+        setSelectedIcon(editPicker, btn.dataset.icon);
+        openModal(editModal, editNameInp);
+    });
+
+    editSaveBtn.addEventListener('click', async () => {
+        const name = editNameInp.value.trim();
+        const icon = getSelectedIcon(editPicker);
+        if (!name) { editNameInp.focus(); return; }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        const resp  = await fetch('@Url.Action("EditCategory", "Settings")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ id: editId, name, icon, __RequestVerificationToken: token })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.success) {
+                const row = document.querySelector(`.cat-row[data-cat-id="${editId}"]`);
+                if (row) {
+                    row.querySelector('.cat-name').textContent        = data.name;
+                    row.querySelector('.cat-icon-wrap img').src       = `/icons/${data.icon}.svg`;
+                    row.querySelector('.js-edit-cat').dataset.name    = data.name;
+                    row.querySelector('.js-edit-cat').dataset.icon    = data.icon;
+                    row.querySelector('.js-delete-cat').dataset.name  = data.name;
+                }
+                closeModal(editModal);
+                showToast('Kategori gemt!');
+            }
+        } else {
+            showToast('Noget gik galt – prøv igen.', 'error');
+        }
+    });
+
+    // ── Slet kategori ─────────────────────────────────────
+    const deleteModal   = document.getElementById('deleteCatModal');
+    const deleteNameLbl = document.getElementById('deleteCatNameLabel');
+    const deleteWarning = document.getElementById('deleteCatWarning');
+    const deleteWarnTxt = document.getElementById('deleteCatWarningText');
+    const deleteConfirm = document.getElementById('deleteCatConfirm');
+    let deleteId = null;
+
+    // Event delegation
+    catList.addEventListener('click', e => {
+        const btn = e.target.closest('.js-delete-cat');
+        if (!btn) return;
+        deleteId = btn.dataset.id;
+        const count = parseInt(btn.dataset.count, 10);
+        deleteNameLbl.textContent = btn.dataset.name;
+        if (count > 0) {
+            deleteWarnTxt.textContent =
+                `${count} opskrift${count === 1 ? '' : 'er'} har denne kategori. ` +
+                `Kategorien fjernes fra disse opskrifter, men opskrifterne beholdes.`;
+            deleteWarning.style.display = 'flex';
+        } else {
+            deleteWarning.style.display = 'none';
+        }
+        openModal(deleteModal);
+    });
+
+    deleteConfirm.addEventListener('click', async () => {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        const resp  = await fetch('@Url.Action("DeleteCategory", "Settings")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ id: deleteId, __RequestVerificationToken: token })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.success) {
+                document.querySelector(`.cat-row[data-cat-id="${deleteId}"]`)?.remove();
+                closeModal(deleteModal);
+                showToast('Kategori slettet.', 'warning');
+            }
+        } else {
+            showToast('Noget gik galt – prøv igen.', 'error');
+        }
+    });
+
+    // ── Opret kategori ────────────────────────────────────
+    const addModal   = document.getElementById('addCatModal');
+    const addNameInp = document.getElementById('addCatName');
+    const addPicker  = document.getElementById('addCatIconPicker');
+    const addSaveBtn = document.getElementById('addCatSave');
+
+    document.querySelector('.js-add-cat').addEventListener('click', () => {
+        addNameInp.value = '';
+        setSelectedIcon(addPicker, 'cookie');
+        openModal(addModal, addNameInp);
+    });
+
+    addSaveBtn.addEventListener('click', async () => {
+        const name = addNameInp.value.trim();
+        if (!name) { addNameInp.focus(); return; }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        const resp  = await fetch('@Url.Action("AddCategory", "Settings")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ name, icon: getSelectedIcon(addPicker), __RequestVerificationToken: token })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.success) {
+                const row = document.createElement('div');
+                row.className      = 'cat-row';
+                row.dataset.catId  = data.id;
+                row.innerHTML = `
+                    <div class="cat-icon-wrap">
+                        <img src="/icons/${data.icon}.svg" alt="${data.name}" />
+                    </div>
+                    <span class="cat-name">${data.name}</span>
+                    <span class="cat-count">0 opskrifter</span>
+                    <div class="cat-actions">
+                        <button class="icon-btn js-edit-cat" title="Rediger"
+                                data-id="${data.id}" data-name="${data.name}" data-icon="${data.icon}">
+                            <img src="/icons/edit.svg" alt="Rediger" />
+                        </button>
+                        <button class="icon-btn js-delete-cat" title="Slet"
+                                data-id="${data.id}" data-name="${data.name}" data-count="0">
+                            <img src="/icons/trash.svg" alt="Slet" />
+                        </button>
+                    </div>`;
+                catList.appendChild(row);
+                closeModal(addModal);
+                showToast('Kategori oprettet!');
+            }
+        } else {
+            showToast('Noget gik galt – prøv igen.', 'error');
+        }
+    });
+})();
+</script>
+<script>
+(function () {
+    const userList = document.getElementById('userList');
+    const token = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    function openModal(modal, focusEl) { modal.classList.add('is-open'); focusEl?.focus(); }
+    function closeModal(modal) { modal.classList.remove('is-open'); }
+
+    document.querySelectorAll('.js-add-user-modal-close, .js-edit-user-modal-close, .js-delete-user-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.closest('.app-modal-backdrop')));
+    });
+
+    function roleBadge(role) {
+        return role === 'Administrator'
+            ? '<span class="cat-count" style="color:var(--accent)">Administrator</span>'
+            : '<span class="cat-count">Bruger</span>';
+    }
+
+    function buildUserRow(u) {
+        const row = document.createElement('div');
+        row.className = 'cat-row';
+        row.dataset.userId = u.id;
+        row.innerHTML = `
+            <div class="cat-icon-wrap" style="background:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <span class="cat-name">${u.displayName || u.username}</span>
+            ${roleBadge(u.role)}
+            <div class="cat-actions">
+                <button class="icon-btn js-edit-user" title="Rediger"
+                        data-id="${u.id}" data-displayname="${u.displayName || ''}" data-role="${u.role}">
+                    <img src="/icons/edit.svg" alt="Rediger" />
+                </button>
+                <button class="icon-btn js-delete-user" title="Slet"
+                        data-id="${u.id}" data-name="${u.displayName || u.username}">
+                    <img src="/icons/trash.svg" alt="Slet" />
+                </button>
+            </div>`;
+        return row;
+    }
+
+    // Indlæs brugere
+    async function loadUsers() {
+        userList.innerHTML = '<span style="padding:8px;color:#888;font-size:.9rem">Indlæser...</span>';
+        const resp = await fetch('@Url.Action("List", "Users")');
+        if (!resp.ok) { userList.innerHTML = '<span style="padding:8px;color:red">Kunne ikke indlæse brugere.</span>'; return; }
+        const users = await resp.json();
+        userList.innerHTML = '';
+        users.forEach(u => userList.appendChild(buildUserRow(u)));
+    }
+    loadUsers();
+
+    // ── Opret bruger ──────────────────────────────────────
+    const addModal = document.getElementById('addUserModal');
+    document.querySelector('.js-add-user').addEventListener('click', () => {
+        document.getElementById('addUserUsername').value = '';
+        document.getElementById('addUserDisplayName').value = '';
+        document.getElementById('addUserPassword').value = '';
+        document.getElementById('addUserRole').value = 'User';
+        openModal(addModal, document.getElementById('addUserUsername'));
+    });
+
+    document.getElementById('addUserSave').addEventListener('click', async () => {
+        const username    = document.getElementById('addUserUsername').value.trim();
+        const displayName = document.getElementById('addUserDisplayName').value.trim();
+        const password    = document.getElementById('addUserPassword').value;
+        const role        = document.getElementById('addUserRole').value;
+        if (!username || !password) { showToast('Udfyld brugernavn og adgangskode.', 'error'); return; }
+
+        const resp = await fetch('@Url.Action("Create", "Users")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ username, displayName, password, role, __RequestVerificationToken: token() })
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            userList.appendChild(buildUserRow(data));
+            closeModal(addModal);
+            showToast('Bruger oprettet!');
+        } else {
+            showToast(data.error ?? 'Noget gik galt.', 'error');
+        }
+    });
+
+    // ── Rediger bruger ────────────────────────────────────
+    const editModal = document.getElementById('editUserModal');
+    userList.addEventListener('click', e => {
+        const btn = e.target.closest('.js-edit-user');
+        if (!btn) return;
+        document.getElementById('editUserId').value         = btn.dataset.id;
+        document.getElementById('editUserDisplayName').value = btn.dataset.displayname;
+        document.getElementById('editUserPassword').value   = '';
+        document.getElementById('editUserRole').value       = btn.dataset.role;
+        openModal(editModal, document.getElementById('editUserDisplayName'));
+    });
+
+    document.getElementById('editUserSave').addEventListener('click', async () => {
+        const id          = document.getElementById('editUserId').value;
+        const displayName = document.getElementById('editUserDisplayName').value.trim();
+        const newPassword = document.getElementById('editUserPassword').value;
+        const role        = document.getElementById('editUserRole').value;
+
+        const resp = await fetch('@Url.Action("Edit", "Users")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ id, displayName, newPassword, role, __RequestVerificationToken: token() })
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            const row = userList.querySelector(`.cat-row[data-user-id="${id}"]`);
+            if (row) {
+                row.querySelector('.cat-name').textContent = data.displayName;
+                row.querySelector('.js-edit-user').dataset.displayname = data.displayName;
+                row.querySelector('.js-edit-user').dataset.role = data.role;
+                row.querySelector('.js-delete-user').dataset.name = data.displayName;
+                const badge = row.querySelector('.cat-count');
+                if (badge) badge.outerHTML = roleBadge(data.role).replace('</span>', '</span>');
+            }
+            closeModal(editModal);
+            showToast('Bruger gemt!');
+        } else {
+            showToast(data.error ?? 'Noget gik galt.', 'error');
+        }
+    });
+
+    // ── Slet bruger ───────────────────────────────────────
+    const deleteModal = document.getElementById('deleteUserModal');
+    userList.addEventListener('click', e => {
+        const btn = e.target.closest('.js-delete-user');
+        if (!btn) return;
+        document.getElementById('deleteUserId').value = btn.dataset.id;
+        document.getElementById('deleteUserNameLabel').textContent = btn.dataset.name;
+        openModal(deleteModal);
+    });
+
+    document.getElementById('deleteUserConfirm').addEventListener('click', async () => {
+        const id = document.getElementById('deleteUserId').value;
+        const resp = await fetch('@Url.Action("Delete", "Users")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ id, __RequestVerificationToken: token() })
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            userList.querySelector(`.cat-row[data-user-id="${id}"]`)?.remove();
+            closeModal(deleteModal);
+            showToast('Bruger slettet.', 'warning');
+        } else {
+            showToast(data.error ?? 'Noget gik galt.', 'error');
+        }
+    });
+})();
+</script>
+}

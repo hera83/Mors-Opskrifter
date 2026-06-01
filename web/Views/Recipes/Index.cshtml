@@ -1,0 +1,14 @@
+@using web.Models
+@model List<Recipe>
+@{
+    var search = ViewBag.Search as string ?? "";
+}
+
+@await Html.PartialAsync("~/Views/Shared/_RecipeList.cshtml", (Model, (int?)null, search, "Recipes"))
+
+<div class="detail-panel">
+    <div class="welcome-panel">
+        <h2>Hej Bagemester ♡</h2>
+        <p>Vælg en opskrift fra listen for at se ingredienser og fremgangsmåde.</p>
+    </div>
+</div>

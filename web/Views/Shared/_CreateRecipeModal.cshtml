@@ -1,0 +1,161 @@
+@* ── Opret ny opskrift – modal ─────────────────────────────────── *@
+<div class="cr-backdrop js-cr-backdrop" aria-hidden="true"></div>
+
+<div class="cr-modal js-cr-modal" role="dialog" aria-modal="true" aria-label="Opret ny opskrift">
+
+    @* ── Header ─────────────────────────────────────────────────── *@
+    <div class="cr-header">
+        <button class="cr-close js-cr-close" type="button" title="Luk">
+            <img src="~/icons/close.svg" alt="Luk" />
+        </button>
+        <span class="cr-title js-cr-modal-title">Ny opskrift</span>
+        <button class="cr-save js-cr-save" type="button">
+            <img src="~/icons/save.svg" alt="" />
+            Gem
+        </button>
+    </div>
+
+    @* ── Body ───────────────────────────────────────────────────── *@
+    <div class="cr-body">
+
+        @* ─ Sektion 1: Grundinfo ─────────────────────────────────── *@
+        <section class="cr-section">
+            <h3 class="cr-section-title">Grundinfo</h3>
+
+            <div class="cr-field">
+                <label class="cr-label">Titel *</label>
+                <input class="cr-input js-cr-title" type="text" placeholder="Fx. Kanelsnegle" maxlength="200" />
+            </div>
+
+            <div class="cr-row">
+                <div class="cr-field cr-field--grow">
+                    <label class="cr-label">Kategori</label>
+                    <div class="cr-cat-select js-cr-cat-select">
+                        <div class="cr-cat-chosen js-cr-cat-chosen">
+                            <div class="cr-cat-icon-wrap js-cr-cat-icon-wrap">
+                                <img src="~/icons/cookie.svg" class="js-cr-cat-icon-img" alt="" />
+                            </div>
+                            <span class="js-cr-cat-label cr-cat-label-text">Vælg kategori</span>
+                            <img src="~/icons/search.svg" class="cr-cat-arrow" alt="" />
+                        </div>
+                        <div class="cr-cat-dropdown js-cr-cat-dropdown" style="display:none;">
+                            <div class="cr-cat-search-wrap">
+                                <img src="~/icons/search.svg" class="cr-cat-search-icon" alt="" />
+                                <input class="cr-cat-search-input js-cr-cat-search" type="text" placeholder="Søg kategori..." />
+                            </div>
+                            <div class="cr-cat-list js-cr-cat-list">
+                                <div class="cr-cat-loading">Henter kategorier…</div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" class="js-cr-cat-value" />
+                    <input type="hidden" class="js-cr-caticon-value" value="cookie" />
+                </div>
+            </div>
+
+            <div class="cr-row">
+                <div class="cr-field">
+                    <label class="cr-label">Forb. tid (min)</label>
+                    <input class="cr-input cr-input--num js-cr-prep" type="number" min="0" value="0" />
+                </div>
+                <div class="cr-field">
+                    <label class="cr-label">Tilb. tid (min)</label>
+                    <input class="cr-input cr-input--num js-cr-cook" type="number" min="0" value="0" />
+                </div>
+                <div class="cr-field">
+                    <label class="cr-label">Portioner</label>
+                    <input class="cr-input cr-input--num js-cr-servings" type="number" min="1" value="4" />
+                </div>
+            </div>
+
+            <div class="cr-field">
+                <label class="cr-label">Sværhedsgrad</label>
+                <div class="filter-chips cr-chips">
+                    <button type="button" class="filter-chip cr-diff-chip" data-value="Let">Let</button>
+                    <button type="button" class="filter-chip cr-diff-chip active" data-value="Middel">Middel</button>
+                    <button type="button" class="filter-chip cr-diff-chip" data-value="Svær">Svær</button>
+                </div>
+            </div>
+        </section>
+
+        @* ─ Sektion 2: Billede ────────────────────────────────────── *@
+        <section class="cr-section">
+            <h3 class="cr-section-title">Billede</h3>
+            <div class="cr-image-area js-cr-image-area">
+                <img src="~/icons/camera.svg" class="cr-image-placeholder-icon" alt="" />
+                <span class="cr-image-placeholder-text">Klik for at vælge billede</span>
+                <input class="js-cr-image-input" type="file" accept="image/*" style="display:none;" />
+                <img class="cr-image-preview js-cr-image-preview" src="" alt="Preview" style="display:none;" />
+            </div>
+        </section>
+
+        @* ─ Sektion 3: Ingredienser ───────────────────────────────── *@
+        <section class="cr-section">
+            <h3 class="cr-section-title">Ingredienser</h3>
+
+            <div class="cr-table-header">
+                <span class="cr-col-amount">Mængde</span>
+                <span class="cr-col-unit">Enhed</span>
+                <span class="cr-col-name">Navn</span>
+                <span class="cr-col-actions"></span>
+            </div>
+
+            <div class="cr-ing-list js-cr-ing-list">
+                @* Rækker tilføjes dynamisk af JS *@
+            </div>
+
+            @* Datalists udfyldes dynamisk fra databasen *@
+            <datalist id="ing-units-list"></datalist>
+            <datalist id="ing-names-list"></datalist>
+
+            <button type="button" class="cr-add-row-btn js-cr-add-ing">
+                <img src="~/icons/plus.svg" alt="" /> Tilføj ingrediens
+            </button>
+        </section>
+
+        @* ─ Sektion 4: Fremgangsmåde ─────────────────────────────── *@
+        <section class="cr-section">
+            <h3 class="cr-section-title">Fremgangsmåde</h3>
+
+            <div class="cr-step-list js-cr-step-list">
+                @* Trin tilføjes dynamisk af JS *@
+            </div>
+
+            <button type="button" class="cr-add-row-btn js-cr-add-step">
+                <img src="~/icons/plus.svg" alt="" /> Tilføj trin
+            </button>
+        </section>
+
+        @* ─ Sektion 5: Noter ─────────────────────────────────────── *@
+        <section class="cr-section">
+            <h3 class="cr-section-title">Noter</h3>
+            <textarea class="cr-textarea js-cr-notes" rows="4" placeholder="Egne noter, tips, variationer…"></textarea>
+        </section>
+
+    </div>@* end cr-body *@
+</div>@* end cr-modal *@
+
+@* ── Beskær billede – overlay ──────────────────────────────────────── *@
+<div class="crop-overlay js-crop-overlay" aria-hidden="true" style="display:none;">
+    <div class="crop-dialog">
+        <div class="crop-dialog-header">
+            <span class="crop-dialog-title">Beskær billede (16:9)</span>
+            <button type="button" class="crop-cancel-btn js-crop-cancel" title="Annuller">
+                <img src="~/icons/close.svg" alt="Annuller" />
+            </button>
+        </div>
+        <div class="crop-canvas-wrap js-crop-canvas-wrap">
+            <canvas class="crop-canvas js-crop-canvas"></canvas>
+            <div class="crop-box js-crop-box">
+                <div class="crop-box-border"></div>
+                <div class="crop-handle crop-handle-nw js-crop-nw"></div>
+                <div class="crop-handle crop-handle-ne js-crop-ne"></div>
+                <div class="crop-handle crop-handle-sw js-crop-sw"></div>
+                <div class="crop-handle crop-handle-se js-crop-se"></div>
+            </div>
+        </div>
+        <div class="crop-dialog-footer">
+            <button type="button" class="crop-confirm-btn js-crop-confirm">Beskær og brug</button>
+        </div>
+    </div>
+</div>

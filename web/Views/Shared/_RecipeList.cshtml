@@ -1,0 +1,160 @@
+@using web.Models
+@model (List<Recipe> Recipes, int? ActiveId, string Search, string ListController)
+@{
+    var ctrl = string.IsNullOrEmpty(Model.ListController) ? "Recipes" : Model.ListController;
+    var favIds = ViewBag.FavoriteIds as HashSet<int> ?? new HashSet<int>();
+}
+
+<div class="list-panel" style="position:relative;overflow:hidden;">
+    <div class="list-panel-header">
+        <div class="list-panel-title-row">
+            <span class="list-panel-title">Mine opskrifter</span>
+            <div class="list-panel-actions">
+                @if (User.IsInRole("Administrator"))
+                {
+                <button class="list-icon-btn js-cr-open" type="button" title="Ny opskrift">
+                    <img src="~/icons/plus.svg" alt="Ny opskrift" />
+                </button>
+                }
+                <button class="list-icon-btn js-filter-open" type="button" title="Filtrer">
+                    <img src="~/icons/filter.svg" alt="Filtrer" />
+                </button>
+            </div>
+        </div>
+        <div class="search-box">
+            <img src="~/icons/search.svg" class="search-icon" alt="" />
+            <input class="js-recipe-search" type="text" value="@Model.Search" placeholder="Søg opskrift..." autocomplete="off" />
+        </div>
+    </div>
+
+    <div class="list-scroll" id="recipeListScroll">
+        @foreach (var r in Model.Recipes)
+        {
+            var icon = string.IsNullOrEmpty(r.CategoryIcon) ? "cookie" : r.CategoryIcon;
+            var cat  = string.IsNullOrEmpty(r.Category)     ? ""       : r.Category;
+            var diff = r.Difficulty.ToString();
+            var totalMin = r.PrepTimeMinutes + r.CookTimeMinutes;
+            <a class="recipe-list-item @(r.Id == Model.ActiveId ? "active" : "")"
+               asp-controller="@ctrl" asp-action="Details" asp-route-id="@r.Id"
+               data-title="@r.Title.ToLower()"
+               data-category="@cat"
+               data-difficulty="@diff"
+               data-minutes="@totalMin"
+               data-favorite="@favIds.Contains(r.Id).ToString().ToLower()">
+                <div class="recipe-thumb">
+                    <img src="~/icons/@(icon).svg" alt="" />
+                </div>
+                <div class="recipe-list-info">
+                    <div class="recipe-list-name">@r.Title</div>
+                    <div class="recipe-list-meta">
+                        <span>@r.TotalTimeLabel()</span>
+                        <span class="meta-dot">•</span>
+                        <span>@r.Difficulty</span>
+                    </div>
+                </div>
+                <div class="recipe-list-actions">
+                    @if (favIds.Contains(r.Id))
+                    {
+                        <span class="star-btn fav"><img src="~/icons/star.svg" alt="Favorit" /></span>
+                    }
+                </div>
+            </a>
+        }
+    </div>
+    <script>
+    (function () {
+        try {
+            var raw = sessionStorage.getItem('recipeFilter');
+            if (!raw) return;
+            var s = JSON.parse(raw);
+            var cats  = new Set(s.cats  || []);
+            var diffs = new Set(s.diffs || []);
+            var q     = (s.search || '').toLowerCase();
+            if (!cats.size && !diffs.size && !q) return;
+            var panel = document.querySelector('.list-panel');
+            if (!panel) return;
+            var visible = 0;
+            panel.querySelectorAll('.recipe-list-item').forEach(function (el) {
+                var title = el.dataset.title || '';
+                var cat   = el.dataset.category || '';
+                var diff  = el.dataset.difficulty || '';
+                var ok = true;
+                if (q && !title.includes(q) && !cat.toLowerCase().includes(q)) ok = false;
+                if (ok && cats.size  && !cats.has(cat))   ok = false;
+                if (ok && diffs.size && !diffs.has(diff)) ok = false;
+                if (!ok) { el.style.display = 'none'; } else { visible++; }
+            });
+            var cnt = panel.querySelector('.js-recipe-count');
+            if (cnt) cnt.textContent = visible;
+        } catch (e) {}
+    })();
+    </script>
+
+    <div class="list-footer">
+        <span class="js-recipe-count">@Model.Recipes.Count</span> opskrift@(Model.Recipes.Count == 1 ? "" : "er")
+    </div>
+
+    @* ── Filter Drawer ────────────────────────────────── *@
+    <div class="filter-backdrop js-filter-backdrop"></div>
+    <div class="filter-drawer js-filter-drawer" role="dialog" aria-label="Filter">
+
+    <div class="filter-drawer-header">
+        <button class="filter-close js-filter-close" title="Luk">
+            <img src="~/icons/close.svg" alt="Luk" />
+        </button>
+        <span class="filter-title">Filter</span>
+        <button class="filter-clear js-filter-clear" type="button">Ryd alle</button>
+    </div>
+
+    <div class="filter-drawer-body">
+
+        <div class="filter-section">
+            <div class="filter-section-label">Kategorier</div>
+            <div class="filter-section-sub">Vælg én eller flere</div>
+            <div class="filter-cat-list js-filter-cats">
+                @{
+                    var cats = Model.Recipes
+                        .Where(r => !string.IsNullOrEmpty(r.Category))
+                        .Select(r => new { r.Category, r.CategoryIcon })
+                        .DistinctBy(x => x.Category)
+                        .OrderBy(x => x.Category);
+                }
+                @foreach (var c in cats)
+                {
+                    var ci = string.IsNullOrEmpty(c.CategoryIcon) ? "cookie" : c.CategoryIcon;
+                    <label class="filter-cat-item">
+                        <div class="filter-cat-icon">
+                            <img src="~/icons/@(ci).svg" alt="" />
+                        </div>
+                        <span class="filter-cat-name">@c.Category</span>
+                        <input type="checkbox" class="filter-cat-cb" value="@c.Category" />
+                        <span class="filter-cat-check"></span>
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-section-label">Sværhedsgrad</div>
+            <div class="filter-section-sub">Vælg én eller flere</div>
+            <div class="filter-chips js-filter-diff">
+                @foreach (var d in new[] { "Let", "Middel", "Svær" })
+                {
+                    <button type="button" class="filter-chip" data-value="@d">@d</button>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <div class="filter-drawer-footer">
+        <button type="button" class="filter-apply js-filter-apply">
+            Vis resultater (<span class="js-filter-count">@Model.Recipes.Count</span>)
+        </button>
+    </div>
+
+    </div>@* end filter-drawer *@
+
+</div>@* end list-panel *@
+
+@await Html.PartialAsync("~/Views/Shared/_CreateRecipeModal.cshtml")

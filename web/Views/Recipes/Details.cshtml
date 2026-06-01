@@ -1,0 +1,151 @@
+@using web.Models
+@model Recipe
+@{
+    var allRecipes = ViewBag.AllRecipes as List<Recipe> ?? new List<Recipe>();
+}
+
+@await Html.PartialAsync("~/Views/Shared/_RecipeList.cshtml", (allRecipes, (int?)Model.Id, "", "Recipes"))
+
+<div class="detail-panel">
+    <div class="detail-inner">
+        <!-- Top bar -->
+        <div class="detail-topbar">
+            <a class="back-btn" asp-controller="Recipes" asp-action="Index"> Tilbage</a>
+            <div class="topbar-actions">
+                <button class="scale-btn js-expand-detail" type="button">
+                    <img src="~/icons/scale.svg" alt="" />
+                    <span class="js-expand-label">Skalér</span>
+                </button>
+                <button class="topbar-star js-toggle-fav @((bool)(ViewBag.IsFavorite ?? false) ? "fav" : "")" type="button" data-id="@Model.Id" title="Favorit">
+                    <img src="~/icons/star.svg" alt="Favorit" />
+                </button>
+                <div class="topbar-more-wrap">
+                    <button class="topbar-more js-topbar-menu-open" type="button" data-id="@Model.Id" title="Mere">···</button>
+                    <div class="topbar-dropdown js-topbar-dropdown" style="display:none;">
+                        <button type="button" class="topbar-dd-item js-print-recipe">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            Print
+                        </button>
+                        <a class="topbar-dd-item js-download-pdf" href="@Url.Action("DownloadPdf", "Recipes", new { id = Model.Id })" download>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                        @if (User.IsInRole("Administrator"))
+                        {
+                        <button type="button" class="topbar-dd-item js-edit-recipe" data-id="@Model.Id">
+                            <img src="~/icons/edit.svg" alt="" /> Rediger
+                        </button>
+                        <button type="button" class="topbar-dd-item topbar-dd-danger js-delete-recipe-open" data-id="@Model.Id" data-title="@Model.Title">
+                            <img src="~/icons/trash.svg" alt="" /> Slet
+                        </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipe header -->
+        <div class="recipe-header">
+            <h1 class="recipe-header-title">@Model.Title</h1>
+            <p class="recipe-header-desc">
+                @(string.IsNullOrWhiteSpace(Model.Category) ? "Ukategoriseret" : Model.Category)
+            </p>
+            @if (!string.IsNullOrEmpty(Model.OriginalImagePath))
+            {
+                <div class="recipe-header-img-wrap">
+                    <img src="@Url.Action("Image", "Recipes", new { fileName = Model.OriginalImagePath })" alt="@Model.Title" class="recipe-header-img" />
+                </div>
+            }
+            else
+            {
+                <div class="recipe-header-img-wrap recipe-header-img-placeholder">
+                    <svg class="recipe-header-img-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6">
+                        <!-- Ydre ring -->
+                        <circle cx="24" cy="24" r="20"/>
+                        <!-- Gaffel: tre tænder øverst, samles, ret skaft ned -->
+                        <line x1="19" y1="10" x2="19" y2="38"/>
+                        <line x1="17" y1="10" x2="17" y2="18"/>
+                        <line x1="19" y1="10" x2="19" y2="18"/>
+                        <line x1="21" y1="10" x2="21" y2="18"/>
+                        <path d="M17 18 C17 22 19 23 19 23 C19 23 21 22 21 18"/>
+                        <!-- Kniv: skaft ned, blad øverst til højre -->
+                        <line x1="29" y1="10" x2="29" y2="38"/>
+                        <path d="M29 10 C29 10 33 12 33 20 C33 23 31 24 29 24"/>
+                    </svg>
+                    <span class="recipe-header-img-text">Intet billede tilgængeligt</span>
+                </div>
+            }
+            <div class="recipe-header-meta">
+                <span class="recipe-header-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    Forfatter: <strong>@Model.Author</strong>
+                </span>
+                <span class="recipe-header-meta-dot">•</span>
+                <span class="recipe-header-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Senest ændret: <strong>@Model.LastModified.ToString("d. MMMM yyyy", new System.Globalization.CultureInfo("da-DK"))</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- Ingredients -->
+        <div class="section-header">
+            <span class="section-title">Ingredienser</span>
+        </div>
+        <ul class="ingredient-list">
+            @foreach (var ing in Model.Ingredients)
+            {
+                <li class="ingredient-item">
+                    <span class="ing-amount">@ing.Amount @ing.Unit</span>
+                    <span>@ing.Name</span>
+                </li>
+            }
+        </ul>
+
+        <!-- Steps -->
+        <div class="section-header">
+            <span class="section-title">Fremgangsmåde</span>
+        </div>
+        <ol class="steps-list">
+            @for (int i = 0; i < Model.Steps.Count; i++)
+            {
+                <li class="step-item">
+                    <span class="step-num">@(i + 1)</span>
+                    <span style="white-space:pre-wrap">@Model.Steps[i]</span>
+                </li>
+            }
+        </ol>
+
+        <!-- Notes -->
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="notes-label">Mine noter</div>
+            <div class="notes-area" style="white-space:pre-wrap">@Model.Notes</div>
+        }
+
+    </div>
+</div>
+
+@* Slet-bekræftigelse *@
+<div class="app-modal-backdrop js-del-recipe-overlay">
+    <div class="app-modal">
+        <div class="app-modal-header">
+            <span class="app-modal-title">Slet opskrift</span>
+            <button class="app-modal-close js-del-recipe-cancel" type="button">
+                <img src="~/icons/close.svg" alt="Luk" />
+            </button>
+        </div>
+        <div class="app-modal-body">
+            <div class="modal-warning-box">
+                <div class="modal-confirm-text">
+                    Er du sikker på, at du vil slette <strong class="js-del-recipe-name"></strong>?
+                </div>
+                <p style="margin:.6rem 0 0;font-size:.82rem;color:var(--text-muted);">Denne handling kan ikke fortrydes.</p>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary js-del-recipe-cancel">Annuller</button>
+            <button type="button" class="modal-btn modal-btn-danger js-del-recipe-confirm">Slet opskrift</button>
+        </div>
+    </div>
+</div>

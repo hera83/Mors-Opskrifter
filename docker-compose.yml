@@ -1,0 +1,15 @@
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_dbs:/app/App_dbs
+      - app_files:/app/App_files
+    restart: unless-stopped
+
+volumes:
+  app_dbs:
+  app_files:

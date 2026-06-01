@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mors Opskrifter</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+    @{ var token = Antiforgery.GetAndStoreTokens(Context).RequestToken; }
+    <meta name="csrf-token" content="@token" />
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <img src="~/images/min-opskriftsbog-logo.png" alt="Min Opskriftsbog" style="width:100%; max-width:140px; display:block; margin:0 auto;" />
+            </div>
+            <nav class="sidebar-nav">
+                @{
+                    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+                }
+                <a class="nav-item @(ctrl == "Recipes" || ctrl == "Home" ? "active" : "")"
+                   asp-controller="Recipes" asp-action="Index">
+                    <img src="~/icons/home.svg" class="nav-icon" alt="" />
+                    <span>Opskrifter</span>
+                </a>
+                <a class="nav-item @(ctrl == "Favorites" ? "active" : "")"
+                   asp-controller="Favorites" asp-action="Index">
+                    <img src="~/icons/star.svg" class="nav-icon" alt="" />
+                    <span>Favoritter</span>
+                </a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                <div style="margin-top:auto;">
+                    @if (User.IsInRole("Administrator"))
+                    {
+                    <a class="nav-item nav-item-settings @(ctrl == "Settings" ? "active" : "")"
+                       asp-controller="Settings" asp-action="Index">
+                        <img src="~/icons/settings.svg" class="nav-icon" alt="" />
+                        <span>Indstillinger</span>
+                    </a>
+                    }
+                    @if (!User.IsInRole("Administrator"))
+                    {
+                    <form asp-controller="Auth" asp-action="Logout" method="post" style="padding:0 8px;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="nav-item" style="width:100%;border:none;background:none;cursor:pointer;text-align:left;">
+                            <img src="~/icons/close.svg" class="nav-icon" alt="" />
+                            <span>Log ud</span>
+                        </button>
+                        <div class="sidebar-nav-divider"></div>
+                    </form>
+                    }
+                </div>
+                }
+            </nav>
+            <div class="sidebar-quote">
+                <img src="~/images/mere-smor-citat.png" alt="Mere smør gør sjældent noget skidt" style="width:100%; max-width:150px; display:block; margin:0 auto;" />
+            </div>
+        </aside>
+
+        @RenderBody()
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,19 @@
+@using web.Models
+@model List<Recipe>
+
+@await Html.PartialAsync("~/Views/Shared/_RecipeList.cshtml", (Model, (int?)null, "", "Favorites"))
+
+<div class="detail-panel">
+    <div class="welcome-panel">
+        @if (!Model.Any())
+        {
+            <h2>Ingen favoritter endnu</h2>
+            <p>Klik på stjernen på en opskrift for at tilføje den til dine favoritter.</p>
+        }
+        else
+        {
+            <h2>Dine favoritter</h2>
+            <p>Vælg en opskrift fra listen til venstre.</p>
+        }
+    </div>
+</div>
