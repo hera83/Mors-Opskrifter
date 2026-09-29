@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
@@ -108,6 +109,17 @@ using (var scope = app.Services.CreateScope())
 
 // ── Pipeline ─────────────────────────────────────────────────────────────────
 static bool IsApiRequest(HttpContext ctx) => ctx.Request.Path.StartsWithSegments("/api");
+
+// Bag en reverse proxy (fx HTTPS-terminering foran Docker-containeren) skal appen vide at
+// kaldet reelt kom ind over https — ellers genereres http://-links (billed-URL'er, OpenAPI).
+// Proxyens IP kendes ikke på forhånd, så alle proxies stoles på; kun scheme og klient-IP overtages.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 if (app.Environment.IsDevelopment())
 {

@@ -19,6 +19,14 @@ namespace web.Services.Api
                               $"Alle kald kræver headeren `{ApiKeyAuthenticationHandler.HeaderName}` med den delte nøgle fra appsettings (Api:SharedKey).",
             };
 
+            // Gør server-adresserne relative ("/" eller "/<pathbase>"), så Swagger UI kalder API'et på
+            // samme scheme og host som siden er åbnet på — også bag en reverse proxy med HTTPS.
+            foreach (var server in document.Servers ?? [])
+            {
+                if (Uri.TryCreate(server.Url, UriKind.Absolute, out var uri))
+                    server.Url = uri.AbsolutePath.TrimEnd('/') is { Length: > 0 } path ? path : "/";
+            }
+
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
             document.Components.SecuritySchemes[ApiKeyAuthenticationHandler.SchemeName] = new OpenApiSecurityScheme
