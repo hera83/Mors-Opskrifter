@@ -552,7 +552,7 @@ public class RecipeImportService
         return new ScannedIngredient(amount, "", rest);
     }
 
-    private static decimal? TryParseAmount(string amount)
+    internal static decimal? TryParseAmount(string amount)
     {
         amount = amount.Trim();
         if (amount.Length == 0) return null;

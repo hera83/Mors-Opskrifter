@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /web/App_dbs/**
 /web/App_files/**
+
+# Lokale miljøvariabler/hemmeligheder (se .env.example)
+.env
