@@ -1,3 +1,5 @@
+using web.Services.Ollama.Interfaces;
+
 namespace web.Services.Ollama;
 
 public class OllamaConfigurationProvider : IOllamaConfigurationProvider
@@ -21,6 +23,7 @@ public class OllamaConfigurationProvider : IOllamaConfigurationProvider
             DefaultGenerateModel = _configuration["Ollama:DefaultGenerateModel"],
             DefaultEmbeddingModel = _configuration["Ollama:DefaultEmbeddingModel"],
             DefaultKeepAlive = _configuration["Ollama:DefaultKeepAlive"],
+            DefaultLanguage = _configuration["Ollama:DefaultLanguage"],
         };
 
         return Task.FromResult(settings);

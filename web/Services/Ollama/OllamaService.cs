@@ -1,8 +1,10 @@
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using web.Services.Ollama.Dto;
+using web.Services.Ollama.Interfaces;
 
 namespace web.Services.Ollama;
 
@@ -40,6 +42,31 @@ public class OllamaService : IOllamaService
         var config = await _configurationProvider.GetActiveConfigurationAsync(cancellationToken);
         using var client = _httpClientFactory.Create(config.BaseUrl, config.ApiKey, config.RequestTimeoutSeconds);
         return await PostAsync<OllamaChatRequest, OllamaChatResponse>(client, "chat", request, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<OllamaChatResponse> ChatStreamAsync(OllamaChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        request.Stream = true;
+        var config = await _configurationProvider.GetActiveConfigurationAsync(cancellationToken);
+        using var client = _httpClientFactory.Create(config.BaseUrl, config.ApiKey, config.RequestTimeoutSeconds);
+        using var response = await SendJsonAsync(client, HttpMethod.Post, "chat", request, cancellationToken, HttpCompletionOption.ResponseHeadersRead);
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream);
+
+        while (true)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null)
+                break;
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            var chunk = JsonSerializer.Deserialize<OllamaChatResponse>(line, JsonOptions);
+            if (chunk is not null)
+                yield return chunk;
+        }
     }
 
     public async Task<OllamaEmbedResponse> EmbedAsync(OllamaEmbedRequest request, CancellationToken cancellationToken = default)
@@ -138,7 +165,13 @@ public class OllamaService : IOllamaService
                ?? throw new OllamaException(HttpStatusCode.InternalServerError, "Kunne ikke parse Ollama response.");
     }
 
-    private static async Task<HttpResponseMessage> SendJsonAsync<TRequest>(HttpClient client, HttpMethod method, string endpoint, TRequest request, CancellationToken cancellationToken)
+    private static async Task<HttpResponseMessage> SendJsonAsync<TRequest>(
+        HttpClient client,
+        HttpMethod method,
+        string endpoint,
+        TRequest request,
+        CancellationToken cancellationToken,
+        HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
     {
         var json = JsonSerializer.Serialize(request, JsonOptions);
         var message = new HttpRequestMessage(method, endpoint)
@@ -146,7 +179,7 @@ public class OllamaService : IOllamaService
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
-        return await client.SendAsync(message, cancellationToken);
+        return await client.SendAsync(message, completionOption, cancellationToken);
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

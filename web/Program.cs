@@ -1,11 +1,19 @@
+using System.Net;
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 using web.Data;
 using web.Models;
 using web.Services.Ollama;
+using web.Services.Ollama.Interfaces;
+using web.Services.RecipeImport;
 
 QuestPDF.Settings.License = LicenseType.Community;
+
+// Gør ældre tegnsæt (fx windows-1252/ISO-8859-1) tilgængelige ved afkodning af
+// hentede opskriftssider i RecipeImportService.
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +56,23 @@ builder.Services.AddHttpClient("Ollama");
 builder.Services.AddScoped<OllamaHttpClientFactory>();
 builder.Services.AddScoped<IOllamaConfigurationProvider, OllamaConfigurationProvider>();
 builder.Services.AddScoped<IOllamaService, OllamaService>();
+
+// ── Opskrifts-import (AI-scan af URL) ────────────────────────────────────────
+builder.Services.AddHttpClient(RecipeImportService.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(45);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+    client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("da,en;q=0.8");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect        = true,
+    MaxAutomaticRedirections = 5,
+    AutomaticDecompression   = DecompressionMethods.All,
+});
+builder.Services.AddScoped<RecipeImportService>();
 
 var app = builder.Build();
 

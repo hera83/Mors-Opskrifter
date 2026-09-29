@@ -1,4 +1,4 @@
-namespace web.Services.Ollama;
+namespace web.Services.Ollama.Interfaces;
 
 public interface IOllamaConfigurationProvider
 {
