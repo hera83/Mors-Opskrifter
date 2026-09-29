@@ -1,0 +1,9 @@
+# Byggeoutput fra Windows/VS må ikke med ind i Linux-buildet (obj/ indeholder Windows-stier)
+bin/
+obj/
+.vs/
+*.user
+
+# Lokale data — i containeren ligger de i volumes (se docker-compose.yml)
+App_dbs/
+App_files/
